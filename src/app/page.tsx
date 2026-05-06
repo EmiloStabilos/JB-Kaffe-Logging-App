@@ -67,7 +67,7 @@ export default function HomePage() {
           <p className="text-amber-gold text-xs font-semibold tracking-[0.2em] uppercase mb-2">
             Your Coffee Journal
           </p>
-          <h1 className="text-4xl font-bold text-cream-100 mb-1" style={{ fontFamily: 'Georgia, serif' }}>
+          <h1 className="text-3xl sm:text-4xl font-bold text-cream-100 mb-1" style={{ fontFamily: 'Georgia, serif' }}>
             Bean Collection
           </h1>
           <p className="text-cream-400 text-sm mt-1">
@@ -90,8 +90,8 @@ export default function HomePage() {
       )}
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
+      <div className="flex flex-col gap-2">
+        <div className="relative">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-cream-400 opacity-50" />
           <input
             type="text"
@@ -101,13 +101,15 @@ export default function HomePage() {
             className="input-base pl-9"
           />
         </div>
-        <select value={filterRoast} onChange={(e) => setFilterRoast(e.target.value as RoastLevel | '')} className="input-base sm:w-40">
-          <option value="">All Roasts</option>
-          {ROAST_LEVELS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-        </select>
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="input-base sm:w-44">
-          {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3">
+          <select value={filterRoast} onChange={(e) => setFilterRoast(e.target.value as RoastLevel | '')} className="input-base sm:w-40">
+            <option value="">All Roasts</option>
+            {ROAST_LEVELS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+          </select>
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="input-base sm:w-44">
+            {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
       </div>
 
       {/* Grid */}
@@ -132,12 +134,13 @@ function StatCard({ icon, label, value, small = false }: {
   icon: React.ReactNode; label: string; value: string | number; small?: boolean;
 }) {
   return (
-    <div className="rounded-xl p-4" style={{ background: '#1e1208', border: '1px solid #3d2510' }}>
-      <div className="flex items-center gap-2 text-amber-gold mb-2">{icon}</div>
-      <p className="font-bold text-cream-100" style={{ fontFamily: 'Georgia, serif', fontSize: small ? '0.9rem' : '1.5rem' }}>
+    <div className="rounded-xl p-3 sm:p-4" style={{ background: '#1e1208', border: '1px solid #3d2510' }}>
+      <div className="flex items-center gap-1.5 text-amber-gold mb-1.5">{icon}</div>
+      <p className="font-bold text-cream-100 truncate"
+        style={{ fontFamily: 'Georgia, serif', fontSize: small ? '0.8rem' : '1.4rem' }}>
         {value}
       </p>
-      <p className="text-xs text-cream-400 opacity-60 mt-0.5">{label}</p>
+      <p className="text-xs text-cream-400 opacity-60 mt-0.5 truncate">{label}</p>
     </div>
   );
 }
