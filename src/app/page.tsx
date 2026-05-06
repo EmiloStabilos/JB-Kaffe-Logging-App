@@ -82,17 +82,19 @@ export default function HomePage() {
 
       {/* Stats */}
       {!loading && coffees.length > 0 && (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <StatCard icon={<Coffee size={18} />} label="Beans Logged" value={coffees.length} />
           <StatCard icon={<Star size={18} />} label="Avg Rating" value={avgRating} />
-          <StatCard icon={<TrendingUp size={18} />} label="Top Roaster" value={topRoaster} small />
+          <div className="hidden sm:block">
+            <StatCard icon={<TrendingUp size={18} />} label="Top Roaster" value={topRoaster} small />
+          </div>
         </div>
       )}
 
       {/* Filters */}
       <div className="flex flex-col gap-2">
         <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-cream-400 opacity-50" />
+          <Search size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-cream-400 opacity-50 pointer-events-none" />
           <input
             type="text"
             placeholder="Search beans, roasters, origins…"
