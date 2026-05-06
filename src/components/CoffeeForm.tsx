@@ -2,11 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, X } from 'lucide-react';
+import { Save, X, ScanLine } from 'lucide-react';
 import type { CoffeeFormData, RoastLevel, Process } from '@/lib/types';
 import { ROAST_LEVELS, PROCESSES, BREW_METHODS, TASTING_NOTES } from '@/lib/types';
 import StarRating from './StarRating';
 import RoastLevelBar from './RoastLevelBar';
+import dynamic from 'next/dynamic';
+
+const BarcodeScanner = dynamic(() => import('./BarcodeScanner'), { ssr: false });
 
 interface CoffeeFormProps {
   initial?: Partial<CoffeeFormData>;
@@ -35,6 +38,7 @@ const DEFAULT: CoffeeFormData = {
 export default function CoffeeForm({ initial, onSubmit, submitLabel = 'Save Bean', disabled = false }: CoffeeFormProps) {
   const router = useRouter();
   const [form, setForm] = useState<CoffeeFormData>({ ...DEFAULT, ...initial });
+  const [scanning, setScanning] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   function set<K extends keyof CoffeeFormData>(key: K, value: CoffeeFormData[K]) {
@@ -64,10 +68,33 @@ export default function CoffeeForm({ initial, onSubmit, submitLabel = 'Save Bean
   }
 
   return (
+    <>
+    {scanning && (
+      <BarcodeScanner
+        onClose={() => setScanning(false)}
+        onResult={(result) => {
+          if (result.name) set('name', result.name);
+          if (result.roaster) set('roaster', result.roaster);
+          setScanning(false);
+        }}
+      />
+    )}
+
     <form onSubmit={handleSubmit} className="space-y-8">
 
       {/* Section: Identity */}
-      <Section title="Bean Identity" subtitle="The essentials about this coffee">
+      <Section
+        title="Bean Identity"
+        subtitle="The essentials about this coffee"
+        action={
+          <button type="button" onClick={() => setScanning(true)}
+            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+            style={{ background: 'rgba(200,134,10,0.12)', color: '#e8a832', border: '1px solid rgba(200,134,10,0.25)' }}>
+            <ScanLine size={13} />
+            Scan Barcode
+          </button>
+        }
+      >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Bean / Blend Name" error={errors.name} required>
             <input className="input-base" value={form.name} placeholder="e.g. Yirgacheffe Kochere"
@@ -199,15 +226,21 @@ export default function CoffeeForm({ initial, onSubmit, submitLabel = 'Save Bean
         </button>
       </div>
     </form>
+    </>
   );
 }
 
-function Section({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+function Section({ title, subtitle, action, children }: {
+  title: string; subtitle: string; action?: React.ReactNode; children: React.ReactNode;
+}) {
   return (
     <div>
-      <div className="mb-4">
-        <h2 className="text-base font-semibold text-cream-100" style={{ fontFamily: 'Georgia, serif' }}>{title}</h2>
-        <p className="text-xs text-cream-400 opacity-60 mt-0.5">{subtitle}</p>
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <h2 className="text-base font-semibold text-cream-100" style={{ fontFamily: 'Georgia, serif' }}>{title}</h2>
+          <p className="text-xs text-cream-400 opacity-60 mt-0.5">{subtitle}</p>
+        </div>
+        {action}
       </div>
       <div className="rounded-xl p-5" style={{ background: '#1e1208', border: '1px solid #3d2510' }}>
         {children}
