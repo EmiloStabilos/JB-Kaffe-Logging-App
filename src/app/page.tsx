@@ -100,7 +100,8 @@ export default function HomePage() {
             placeholder="Search beans, roasters, origins…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="input-base pl-9"
+            className="input-base"
+            style={{ paddingLeft: '2.25rem' }}
           />
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3">
