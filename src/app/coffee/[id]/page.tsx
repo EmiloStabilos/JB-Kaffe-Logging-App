@@ -14,20 +14,29 @@ export default function CoffeeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [coffee, setCoffee] = useState<Coffee | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    const found = getCoffeeById(id);
-    if (!found) { router.replace('/'); return; }
-    setCoffee(found);
+    getCoffeeById(id).then((found) => {
+      if (!found) { router.replace('/'); return; }
+      setCoffee(found);
+    });
   }, [id, router]);
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!confirmDelete) { setConfirmDelete(true); return; }
-    deleteCoffee(id);
+    setDeleting(true);
+    await deleteCoffee(id);
     router.push('/');
   }
 
-  if (!coffee) return null;
+  if (!coffee) {
+    return (
+      <div className="max-w-2xl mx-auto pt-16 text-center">
+        <div className="animate-pulse text-cream-400">Loading…</div>
+      </div>
+    );
+  }
 
   const purchaseDate = new Date(coffee.purchaseDate).toLocaleDateString('en-GB', {
     day: 'numeric', month: 'long', year: 'numeric',
@@ -35,14 +44,12 @@ export default function CoffeeDetailPage() {
   const roastDate = coffee.roastDate
     ? new Date(coffee.roastDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     : null;
-
   const daysSinceRoast = coffee.roastDate
-    ? Math.floor((new Date().getTime() - new Date(coffee.roastDate).getTime()) / 86400000)
+    ? Math.floor((Date.now() - new Date(coffee.roastDate).getTime()) / 86400000)
     : null;
 
   return (
     <div className="max-w-2xl mx-auto fade-up space-y-6">
-      {/* Back */}
       <button onClick={() => router.back()}
         className="flex items-center gap-2 text-sm text-cream-400 hover:text-amber-light transition-colors">
         <ArrowLeft size={15} />
@@ -51,15 +58,11 @@ export default function CoffeeDetailPage() {
 
       {/* Hero card */}
       <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #3d2510' }}>
-        {/* Top gradient */}
         <div className="h-1 roast-gradient" />
-
         <div className="p-7" style={{ background: 'linear-gradient(145deg, #2c1b0e, #1e1208)' }}>
           <div className="flex items-start justify-between gap-4 mb-1">
             <div>
-              <p className="text-amber-gold text-xs font-semibold tracking-[0.15em] uppercase mb-1">
-                {coffee.roaster}
-              </p>
+              <p className="text-amber-gold text-xs font-semibold tracking-[0.15em] uppercase mb-1">{coffee.roaster}</p>
               <h1 className="text-3xl font-bold text-cream-100 leading-tight" style={{ fontFamily: 'Georgia, serif' }}>
                 {coffee.name}
               </h1>
@@ -70,10 +73,8 @@ export default function CoffeeDetailPage() {
                 style={{ background: '#3d2510' }}>
                 <Edit2 size={16} />
               </Link>
-              <button onClick={handleDelete}
-                className={`p-2 rounded-lg transition-all ${confirmDelete
-                  ? 'bg-red-900 text-red-300 ring-1 ring-red-700'
-                  : 'text-cream-400 hover:text-red-400'}`}
+              <button onClick={handleDelete} disabled={deleting}
+                className={`p-2 rounded-lg transition-all ${confirmDelete ? 'bg-red-900 text-red-300 ring-1 ring-red-700' : 'text-cream-400 hover:text-red-400'}`}
                 style={!confirmDelete ? { background: '#3d2510' } : undefined}
                 title={confirmDelete ? 'Click again to confirm' : 'Delete entry'}>
                 <Trash2 size={16} />
@@ -82,18 +83,14 @@ export default function CoffeeDetailPage() {
           </div>
 
           {confirmDelete && (
-            <p className="text-red-400 text-xs mt-2 mb-3">
-              Click the delete button again to permanently remove this entry.
-            </p>
+            <p className="text-red-400 text-xs mt-2 mb-3">Click delete again to permanently remove this entry.</p>
           )}
 
-          {/* Rating */}
           <div className="flex items-center gap-3 mt-4 mb-6">
             <StarRating value={coffee.rating} readonly size={20} />
             <span className="text-cream-400 text-sm">{ratingLabel(coffee.rating)}</span>
           </div>
 
-          {/* Meta grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
             <MetaItem icon={<MapPin size={14} />} label="Origin">{coffee.origin}</MetaItem>
             {coffee.variety && <MetaItem icon={<Leaf size={14} />} label="Variety">{coffee.variety}</MetaItem>}
@@ -105,9 +102,7 @@ export default function CoffeeDetailPage() {
               <MetaItem icon={<Calendar size={14} />} label="Roasted">
                 {roastDate}
                 {daysSinceRoast !== null && (
-                  <span className="block text-xs opacity-50 mt-0.5">
-                    {daysSinceRoast} days ago
-                  </span>
+                  <span className="block text-xs opacity-50 mt-0.5">{daysSinceRoast} days ago</span>
                 )}
               </MetaItem>
             )}
@@ -119,26 +114,21 @@ export default function CoffeeDetailPage() {
             )}
           </div>
 
-          {/* Roast level */}
-          <div className="mb-2">
+          <div>
             <p className="text-xs text-cream-400 opacity-60 uppercase tracking-widest mb-3">Roast Level</p>
             <RoastLevelBar value={coffee.roastLevel} />
           </div>
         </div>
       </div>
 
-      {/* Tasting notes */}
       {coffee.tastingNotes.length > 0 && (
         <Section title="Tasting Notes">
           <div className="flex flex-wrap gap-2">
-            {coffee.tastingNotes.map((note) => (
-              <span key={note} className="tag text-sm px-3 py-1">{note}</span>
-            ))}
+            {coffee.tastingNotes.map((note) => <span key={note} className="tag text-sm px-3 py-1">{note}</span>)}
           </div>
         </Section>
       )}
 
-      {/* Brew methods */}
       {coffee.brewMethods.length > 0 && (
         <Section title="Brew Methods">
           <div className="flex flex-wrap gap-2">
@@ -152,17 +142,14 @@ export default function CoffeeDetailPage() {
         </Section>
       )}
 
-      {/* Cupping notes */}
       {coffee.notes.trim() && (
         <Section title="Cupping Notes">
           <p className="text-cream-300 text-sm leading-relaxed whitespace-pre-wrap">{coffee.notes}</p>
         </Section>
       )}
 
-      {/* Footer meta */}
       <p className="text-center text-xs text-cream-400 opacity-30 pb-4">
         Logged {new Date(coffee.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
-        {coffee.updatedAt !== coffee.createdAt && ` · Updated ${new Date(coffee.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`}
       </p>
     </div>
   );
@@ -171,7 +158,8 @@ export default function CoffeeDetailPage() {
 function MetaItem({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="flex items-center gap-1.5 text-amber-gold mb-1">{icon}
+      <div className="flex items-center gap-1.5 text-amber-gold mb-1">
+        {icon}
         <span className="text-xs text-cream-400 opacity-60 uppercase tracking-widest">{label}</span>
       </div>
       <p className="text-sm text-cream-200 font-medium">{children}</p>

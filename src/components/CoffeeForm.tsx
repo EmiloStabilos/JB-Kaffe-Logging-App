@@ -12,6 +12,7 @@ interface CoffeeFormProps {
   initial?: Partial<CoffeeFormData>;
   onSubmit: (data: CoffeeFormData) => void;
   submitLabel?: string;
+  disabled?: boolean;
 }
 
 const DEFAULT: CoffeeFormData = {
@@ -31,7 +32,7 @@ const DEFAULT: CoffeeFormData = {
   notes: '',
 };
 
-export default function CoffeeForm({ initial, onSubmit, submitLabel = 'Save Bean' }: CoffeeFormProps) {
+export default function CoffeeForm({ initial, onSubmit, submitLabel = 'Save Bean', disabled = false }: CoffeeFormProps) {
   const router = useRouter();
   const [form, setForm] = useState<CoffeeFormData>({ ...DEFAULT, ...initial });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -185,8 +186,8 @@ export default function CoffeeForm({ initial, onSubmit, submitLabel = 'Save Bean
 
       {/* Actions */}
       <div className="flex gap-3 pt-2">
-        <button type="submit"
-          className="flex items-center gap-2 bg-amber-gold hover:bg-amber-light text-espresso-900 font-semibold px-6 py-3 rounded-lg transition-all active:scale-95 shadow-lg">
+        <button type="submit" disabled={disabled}
+          className="flex items-center gap-2 bg-amber-gold hover:bg-amber-light text-espresso-900 font-semibold px-6 py-3 rounded-lg transition-all active:scale-95 shadow-lg disabled:opacity-60 disabled:cursor-not-allowed">
           <Save size={16} />
           {submitLabel}
         </button>

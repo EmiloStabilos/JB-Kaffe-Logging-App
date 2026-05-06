@@ -1,62 +1,72 @@
-'use client';
-
-import { v4 as uuidv4 } from 'uuid';
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  orderBy,
+  serverTimestamp,
+  Timestamp,
+} from 'firebase/firestore';
+import { db } from './firebase';
 import type { Coffee, CoffeeFormData } from './types';
 
-const STORAGE_KEY = 'kaffe-log';
+const COL = 'coffees';
 
-function getAll(): Coffee[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+function fromFirestore(id: string, data: Record<string, unknown>): Coffee {
+  return {
+    ...(data as Omit<Coffee, 'id' | 'createdAt' | 'updatedAt'>),
+    id,
+    createdAt: data.createdAt instanceof Timestamp
+      ? data.createdAt.toDate().toISOString()
+      : String(data.createdAt ?? ''),
+    updatedAt: data.updatedAt instanceof Timestamp
+      ? data.updatedAt.toDate().toISOString()
+      : String(data.updatedAt ?? ''),
+  };
 }
 
-function saveAll(coffees: Coffee[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(coffees));
+export async function getAllCoffees(): Promise<Coffee[]> {
+  const q = query(collection(db, COL), orderBy('createdAt', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => fromFirestore(d.id, d.data()));
 }
 
-export function getAllCoffees(): Coffee[] {
-  return getAll().sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+export async function getCoffeeById(id: string): Promise<Coffee | undefined> {
+  const snap = await getDoc(doc(db, COL, id));
+  if (!snap.exists()) return undefined;
+  return fromFirestore(snap.id, snap.data());
 }
 
-export function getCoffeeById(id: string): Coffee | undefined {
-  return getAll().find((c) => c.id === id);
+export async function addCoffee(data: CoffeeFormData): Promise<Coffee> {
+  const ref = await addDoc(collection(db, COL), {
+    ...data,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  const snap = await getDoc(ref);
+  return fromFirestore(snap.id, snap.data()!);
 }
 
-export function addCoffee(data: CoffeeFormData): Coffee {
-  const now = new Date().toISOString();
-  const coffee: Coffee = { ...data, id: uuidv4(), createdAt: now, updatedAt: now };
-  const all = getAll();
-  saveAll([...all, coffee]);
-  return coffee;
+export async function updateCoffee(id: string, data: CoffeeFormData): Promise<Coffee | null> {
+  const ref = doc(db, COL, id);
+  await updateDoc(ref, { ...data, updatedAt: serverTimestamp() });
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return null;
+  return fromFirestore(snap.id, snap.data());
 }
 
-export function updateCoffee(id: string, data: CoffeeFormData): Coffee | null {
-  const all = getAll();
-  const idx = all.findIndex((c) => c.id === id);
-  if (idx === -1) return null;
-  const updated: Coffee = { ...all[idx], ...data, id, updatedAt: new Date().toISOString() };
-  all[idx] = updated;
-  saveAll(all);
-  return updated;
+export async function deleteCoffee(id: string): Promise<void> {
+  await deleteDoc(doc(db, COL, id));
 }
 
-export function deleteCoffee(id: string): boolean {
-  const all = getAll();
-  const filtered = all.filter((c) => c.id !== id);
-  if (filtered.length === all.length) return false;
-  saveAll(filtered);
-  return true;
-}
+export async function seedDemoData(): Promise<void> {
+  const existing = await getDocs(collection(db, COL));
+  if (!existing.empty) return;
 
-export function seedDemoData(): void {
-  if (getAll().length > 0) return;
   const demos: CoffeeFormData[] = [
     {
       name: 'Yirgacheffe Kochere',
@@ -72,8 +82,7 @@ export function seedDemoData(): void {
       rating: 5,
       brewMethods: ['Pour Over', 'AeroPress'],
       tastingNotes: ['Floral', 'Citrus', 'Berry', 'Bright'],
-      notes:
-        'Exceptional cup. Jasmine florals bloom in the cup with a lingering lemon-zest finish. Best at 93°C with a 3-minute extraction.',
+      notes: 'Exceptional cup. Jasmine florals bloom with a lingering lemon-zest finish.',
     },
     {
       name: 'Colombia Huila Natural',
@@ -89,8 +98,7 @@ export function seedDemoData(): void {
       rating: 4,
       brewMethods: ['Espresso', 'Chemex'],
       tastingNotes: ['Stone Fruit', 'Chocolate', 'Sweet', 'Winey'],
-      notes:
-        'Rich and complex. As espresso it pulls a thick, syrupy shot with notes of ripe apricot. Slightly boozy on the finish.',
+      notes: 'Rich and complex. Pulls a thick syrupy espresso shot with notes of ripe apricot.',
     },
     {
       name: 'Kenya Nyeri AB',
@@ -106,14 +114,17 @@ export function seedDemoData(): void {
       rating: 4,
       brewMethods: ['Pour Over', 'French Press'],
       tastingNotes: ['Berry', 'Citrus', 'Bright', 'Fruity'],
-      notes:
-        'Classic Kenyan profile. Blackcurrant and grapefruit in the cup. A little tannic in the French press but incredible as a V60.',
+      notes: 'Classic Kenyan profile. Blackcurrant and grapefruit. Incredible as a V60.',
     },
   ];
 
-  const all: Coffee[] = demos.map((d) => {
-    const now = new Date().toISOString();
-    return { ...d, id: uuidv4(), createdAt: now, updatedAt: now };
-  });
-  saveAll(all);
+  await Promise.all(
+    demos.map((d) =>
+      addDoc(collection(db, COL), {
+        ...d,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+    )
+  );
 }
